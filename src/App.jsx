@@ -9,24 +9,57 @@ import {
   SimpleGrid,
   Text,
 } from '@chakra-ui/react';
+import {
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableContainer,
+  Divider
+} from '@chakra-ui/react'
+
 import { Alchemy, Network, Utils } from 'alchemy-sdk';
 import { useState } from 'react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi';
+import { ProgressBar } from 'react-loader-spinner';
+
 
 function App() {
   const [userAddress, setUserAddress] = useState('');
   const [results, setResults] = useState([]);
-  const [hasQueried, setHasQueried] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [tokenDataObjects, setTokenDataObjects] = useState([]);
+  const [emptyRequestError, setEmptyRequestError] = useState("")
+
+  const account = useAccount({
+    onConnect({ address, connector, isReconnected }) {
+      console.log('Connected', { address, connector, isReconnected })
+      setUserAddress(address)
+    }
+  })  
 
   async function getTokenBalance() {
+    if (userAddress === "" || userAddress.length < 42){
+      setEmptyRequestError("Please input a valid wallet address");
+      setTimeout(()=>{
+        setEmptyRequestError("")
+      },1500)
+      return;
+    }
+    setIsLoading(true);
     const config = {
-      apiKey: '<-- COPY-PASTE YOUR ALCHEMY API KEY HERE -->',
+      apiKey: import.meta.env.VITE_API_KEY,
       network: Network.ETH_MAINNET,
     };
 
+    
+
     const alchemy = new Alchemy(config);
     const data = await alchemy.core.getTokenBalances(userAddress);
-
     setResults(data);
 
     const tokenDataPromises = [];
@@ -39,10 +72,17 @@ function App() {
     }
 
     setTokenDataObjects(await Promise.all(tokenDataPromises));
-    setHasQueried(true);
+    setTimeout(()=>{
+      setIsLoading(false);
+      setDataLoaded(true);
+    },1000 )
   }
   return (
     <Box w="100vw">
+    <div className="connect-wallet" >
+    <ConnectButton onClick={(e)=>setWalletAddress(e)}/>
+    </div>
+    <Divider className="divider" orientation='horizontal' colorScheme="teal" size="md" />
       <Center>
         <Flex
           alignItems={'center'}
@@ -64,53 +104,66 @@ function App() {
         alignItems="center"
         justifyContent={'center'}
       >
-        <Heading mt={42}>
+        <Heading className="heading-main" mt={42}>
           Get all the ERC-20 token balances of this address:
         </Heading>
         <Input
+          placeholder="input any address or connect with yours"
           onChange={(e) => setUserAddress(e.target.value)}
           color="black"
+          value={userAddress}
           w="600px"
           textAlign="center"
           p={4}
           bgColor="white"
           fontSize={24}
         />
-        <Button fontSize={20} onClick={getTokenBalance} mt={36} bgColor="blue">
+        <Button className="main-button" fontSize={20} onClick={getTokenBalance} mt={36} bgColor="#ffc82d">
           Check ERC-20 Token Balances
         </Button>
+        {emptyRequestError !== "" && <div className='error'>{emptyRequestError}</div>}
 
-        <Heading my={36}>ERC-20 token balances:</Heading>
-
-        {hasQueried ? (
-          <SimpleGrid w={'90vw'} columns={4} spacing={24}>
-            {results.tokenBalances.map((e, i) => {
-              return (
-                <Flex
-                  flexDir={'column'}
-                  color="white"
-                  bg="blue"
-                  w={'20vw'}
-                  key={e.id}
-                >
-                  <Box>
-                    <b>Symbol:</b> ${tokenDataObjects[i].symbol}&nbsp;
-                  </Box>
-                  <Box>
-                    <b>Balance:</b>&nbsp;
-                    {Utils.formatUnits(
-                      e.tokenBalance,
-                      tokenDataObjects[i].decimals
-                    )}
-                  </Box>
-                  <Image src={tokenDataObjects[i].logo} />
-                </Flex>
-              );
-            })}
-          </SimpleGrid>
-        ) : (
-          'Please make a query! This may take a few seconds...'
-        )}
+        {dataLoaded && <Heading className="no-margin" my={36}>ERC-20 token balances:</Heading>}
+    {isLoading && (<div className='flex-col'><p>Loading...</p><ProgressBar
+  height="80"
+  width="80"
+  ariaLabel="progress-bar-loading"
+  wrapperStyle={{}}
+  wrapperClass="progress-bar-wrapper"
+  borderColor = '#FF5964'
+  barColor = '#35A7FF'
+/></div>)}
+        {dataLoaded && 
+                <TableContainer>
+                  <Table variant="striped" colorScheme="green" size="lg">
+                  <Thead>
+                    <Tr>
+                      <Th>Token</Th>
+                      <Th>Ticker</Th>
+                      <Th>Balance</Th>
+                      <Th>address</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {results.tokenBalances.map((token, index)=>{
+                      return(
+                        <Tr key={token.contractAddress}>
+                          <Td>{tokenDataObjects[index].name}</Td>
+                          <Td className="flex-row">{tokenDataObjects[index].logo && <img className='token-logo' src={tokenDataObjects[index].logo}></img>} {" "} {tokenDataObjects[index].symbol}</Td>
+                          <Td>{parseInt(token.tokenBalance/(10**tokenDataObjects[index].decimals))}</Td>
+                          <Td className="link"><a href={`https://etherscan.io/token/${token.contractAddress}`}>{token.contractAddress.slice(0,5)+"..."+token.contractAddress.slice(35,42)}</a></Td>
+                        </Tr>
+                      )
+                    })}
+                  </Tbody>
+                  </Table>
+                </TableContainer>
+                
+                
+              
+            }
+          
+        
       </Flex>
     </Box>
   );

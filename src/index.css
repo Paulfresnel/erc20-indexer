@@ -68,3 +68,67 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+
+.flex-col{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+
+.flex-col > p{
+  font-weight: bold;
+  margin-bottom: 0;
+}
+
+.cards{
+  background-color: green;
+}
+
+.token-logo{
+  width: 25px;
+}
+
+.flex-row{
+  flex: row;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+
+.link{
+  color: rgb(0, 162, 255);
+  text-decoration: underline;
+}
+
+.heading-main{
+  margin-bottom: 35px;
+}
+
+.main-button{
+  margin: 55px !important;
+}
+
+.no-margin{
+  margin-top: 35px !important;
+  margin-bottom: 65px !important;
+}
+
+.error{
+  color: red;
+  font-weight: bold;
+  font-size: 1.15rem;
+}
+
+.connect-wallet{
+  margin-top: 35px;
+  margin-bottom: 50px;
+  display: flex;
+  justify-content: center;
+}
+
+.divider{
+  margin-bottom: 30px;
+}
